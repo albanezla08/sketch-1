@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+SC&display=swap");
+      @import url('https://fonts.cdnfonts.com/css/commodore-64-pixelized');
+
+      body {
+        background-color: #0082c8;
+        color: #ffffff;
+        font-size: 30px;
+        line-height: 30px;
+        word-wrap: anywhere;
+        font-family: "Noto Serif SC";
+      }
+      /* Four divs for each quadrant of screen */
+      #bot-left {
+        position: fixed;
+        right: 50%;
+        left: 0;
+        top: 50%;
+        bottom: 0;
+      }
+      #bot-right {
+        position: fixed;
+        left: 50%;
+        right: 0;
+        top: 50%;
+        bottom: 0;
+      }
+      #top-left {
+        position: fixed;
+        right: 50%;
+        left: 0;
+        bottom: 50%;
+        transform: rotate(180deg);
+      }
+      #top-right {
+        position: fixed;
+        left: 50%;
+        right: 0;
+        bottom: 50%;
+        transform: rotate(180deg);
+      }
+      /* Slashes */
+      .slashes {
+        cursor: default;
+      }
+      .slashes > span {
+        position: relative;
+      }
+      /* Stop button */
+      #stop-button-container {
+        position: relative;
+        width: 100%;
+      }
+      #stop-button {
+        position: absolute;
+        background-color: #6743c1;
+        font-family: 'Commodore 64 Pixelized', sans-serif;
+        font-size: 1em;
+        color: #a889f5;
+        left: 0;
+      }
+      /* Type stop section */
+      #type-instructions {
+        transform: rotate(180deg);
+        font-family: 'Commodore 64 Pixelized', "Noto Serif SC", sans-serif;
+      }
+      #type-instructions > .typed {
+        color: #a889f5;
+      }
+      /* Click on today's date section */
+      #date-instructions {
+        transform: rotate(180deg);
+      }
+      .date-button {
+        background-color: #6743c1;
+        color: #a889f5;
+        font-size: 1em;
+      }
+      #top-right > .date-button {
+        transform: rotate(180deg);
+      }
+      #bot-right > .date-button {
+        margin-left: 50%;
+        transform: translate(-50%);
+      }
+      .wrong-clicked {
+        background-color: #a70606;
+      }
+      /* Last stop button */
+      #last-stop-button-container {
+        position: relative;
+        width: 100%;
+      }
+      #last-stop-button {
+        position: absolute;
+        left: 0;
+        transform: rotate(180deg);
+        background-color: #a0a0a0;
+        font-size: 1em;
+        color: #333333;
+        border-radius: 8px;
+      }
+      /* Fall animation */
+      @keyframes falloff {
+        0% {top: 0;}
+        20% {top: 20px;}
+        100% {top: 100vh;}
+      }
+      @keyframes fallon {
+        0% {bottom: 0;}
+        20% {bottom: 20px;}
+        100% {bottom: 100vh;}
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bot-left" dir="rtl">
+      <div class="slashes"></div>
+      <div id="stop-button-container">
+        <button id="stop-button">
+          Stop
+        </button>
+      </div>
+      <button class="date-button" style="display: none">
+        Date 2
+      </button>
+    </div>
+    <div id="bot-right" dir="ltr">
+      <div class="slashes"></div>
+      <button class="date-button" style="display: none">
+        Date 1
+      </button>
+    </div>
+    <div id="top-left" dir="ltr">
+      <div class="slashes"></div>
+      <p id="type-instructions" style="display: none">
+        Type '<span>s</span><span>t</span><span>o</span><span>p</span>' to stop
+      </p>
+      <p id="date-instructions" style="display: none">
+        Click on today's date to stop
+      </p>
+    </div>
+    <div id="top-right" dir="rtl">
+      <div class="slashes"></div>
+      <button class="date-button" style="display: none">
+        Date 3
+      </button>
+      <div id="last-stop-button-container">
+        <button id="last-stop-button" dir="ltr" style="display: none">
+          Stop?
+        </button>
+      </div>
+    </div>
+    
+    <script>
+      /* Choosing a container our of the 4 */
+      const containers = [
+        document.getElementById("bot-left").querySelector(".slashes"),
+        document.getElementById("bot-right").querySelector(".slashes"),
+        document.getElementById("top-left").querySelector(".slashes"),
+        document.getElementById("top-right").querySelector(".slashes")
+      ]
+      function chooseContainer() {
+        const chosenIndex = Math.floor(Math.random() * 4);
+        return containers[chosenIndex];
+      }
+      /* Drawing a slash in a span */
+      function createCharInSpan(char) {
+        const spanElem = document.createElement('span');
+        spanElem.innerText = char;
+        return spanElem;
+      }
+      function drawRandomSlashIn(container) {
+        const slashChar = Math.random() > 0.5 ? '／' : '＼';
+        container.appendChild(createCharInSpan(slashChar));
+      }
+      function drawRandSlashInRandContainer() {
+        const container = chooseContainer();
+        drawRandomSlashIn(container);
+      }
+      /* Recursive animation frame calls */
+      let frameRequest; // used to cancel the request for pausing purposes
+      function recursiveRequestAnimationFrame(callback) {
+        callback();
+        frameRequest = requestAnimationFrame(() => recursiveRequestAnimationFrame(callback), 1000);
+      }
+      /* User input can change slash directions */
+      let isAlgorithmTerminated = false;
+      function getSlashFromMove(xMove, yMove) {
+        if (xMove > 0) {
+          if (yMove > 0) {
+            return '＼';
+          } else if (yMove < 0) {
+            return '／';
+          }
+        } else if (xMove < 0) {
+          if (yMove > 0) {
+            return '／';
+          } else if (yMove < 0) {
+            return '＼';
+          }
+        }
+        return null;
+      }
+      function flipSlash(slashSpan) {
+        const currentSlash = slashSpan.innerText;
+        if (currentSlash === '＼') {
+          slashSpan.innerText = '／';
+        } else if (currentSlash === '／') {
+          slashSpan.innerText = '＼';
+        } else {
+          console.log("bad");
+        }
+      }
+      function onMouseMove(e) {
+        const newSlash = getSlashFromMove(e.movementX, e.movementY);
+        if (newSlash === null) {
+          return;
+        }
+        const spanNode = e.target;
+        if (!('nodeName' in spanNode) || spanNode.nodeName !== 'SPAN' || (spanNode.innerText !== '＼' && spanNode.innerText !== '／')) {
+          return;
+        }
+        if (!isAlgorithmTerminated && newSlash !== spanNode.innerText) {
+          const delay = Math.random() * 1000 + 500;
+          setTimeout(() => flipSlash(spanNode), delay);
+        }
+        spanNode.innerText = newSlash;
+      }
+      /* Stop events helpers */
+      function setDisplay(element, display) {
+        element.style.display = display;
+      }
+      const stopButton = document.getElementById('stop-button');
+      const typeInstructions = document.getElementById('type-instructions');
+      const stopLetterStatuses = [
+        {letterCode: 'KeyS', typed: false},
+        {letterCode: 'KeyT', typed: false},
+        {letterCode: 'KeyO', typed: false},
+        {letterCode: 'KeyP', typed: false}
+      ];
+      function checkKey(e) {
+        for (let i = 0; i < stopLetterStatuses.length; i++) {
+          const current = stopLetterStatuses[i];
+          if (!current.typed) {
+            if (e.code === current.letterCode) {
+              current.typed = true;
+              typeInstructions.children[i].classList.add('typed');
+              if (current.letterCode === "KeyP") {
+                secondStop();
+              }
+            }
+            return;
+          }
+        }
+      }
+      const dateInstructions = document.getElementById('date-instructions');
+      const dateButtons = document.querySelectorAll('.date-button');
+      const todayDate = new Date().getDate();
+      function createWrongDate() {
+        const parity = Math.random() > 0.5 ? 1 : -1;
+        const change = Math.floor(Math.random() * 6 + 1) * parity;
+        let wrongDate = todayDate + change;
+        if (wrongDate > 31) {
+          wrongDate = 31 - wrongDate;
+        } else if (wrongDate < 1) {
+          wrongDate = 1 - wrongDate;
+        }
+        return wrongDate;
+      }
+      function wrongDateClicked(buttonIndex) {
+        setDisplay(dateInstructions, 'none');
+        for (let i = 0; i < dateButtons.length; i++) {
+          const button = dateButtons[i];
+          setDisplay(dateInstructions, 'none');
+          if (i === buttonIndex) {
+            button.classList.add('wrong-clicked');
+          } else {
+            setDisplay(button, 'none');
+          }
+        }
+      }
+      const lastStopButton = document.getElementById("last-stop-button");
+      /* Stop events */
+      function firstStop() {
+        setDisplay(stopButton, 'none');
+        setDisplay(typeInstructions, 'block');
+        window.addEventListener('keydown', checkKey);
+      }
+      function secondStop() {
+        window.removeEventListener('keydown', checkKey);
+        setDisplay(typeInstructions, 'none');
+        setDisplay(dateInstructions, 'block');
+        const correctButtonIndex = Math.floor(Math.random() * 3);
+        for (let i = 0; i < dateButtons.length; i++) {
+          const button = dateButtons[i];
+          setDisplay(button, 'block');
+          if (i === correctButtonIndex) {
+            button.innerText = todayDate;
+            button.addEventListener('click', thirdStop);
+          } else {
+            button.innerText = createWrongDate();
+            button.addEventListener('click', () => wrongDateClicked(i));
+          }
+        }
+      }
+      function thirdStop() {
+        setDisplay(dateInstructions, 'none');
+        dateButtons.forEach(button => setDisplay(button, 'none'));
+        setDisplay(lastStopButton, 'block');
+        lastStopButton.addEventListener('click', startFallTimer);
+      }
+      /* Falling slashes */
+      let bottomLeftSlashes;
+      let bottomRightSlashes;
+      let topLeftSlashes;
+      let topRightSlashes;
+      function startFallTimer() {
+        isAlgorithmTerminated = true;
+        setDisplay(lastStopButton, 'none');
+        cancelAnimationFrame(frameRequest);
+        bottomLeftSlashes = Array.from(containers[0].children);
+        bottomRightSlashes = Array.from(containers[1].children);
+        topLeftSlashes = Array.from(containers[2].children);
+        topRightSlashes = Array.from(containers[3].children);
+        const delay = Math.random() * 5000 + 5000;
+        setTimeout(recursiveDropSlash, delay);
+      }
+      function makeElemFall(elem) {
+        let animationName;
+        if (elem.parentElement.parentElement.id.includes("top-")) {
+          animationName = 'fallon';
+        } else {
+          animationName = 'falloff';
+        }
+        const animationDuration = Math.random() * 3 + 5;
+        elem.style.animation = `${animationName} ${animationDuration}s`;
+        elem.style.animationFillMode = "forwards";
+        elem.addEventListener('animationend', () => elem.style.visibility = 'hidden');
+      }
+      function chooseChild(children) {
+        const childIndex = Math.floor(Math.random() * children.length);
+        const child = children[childIndex];
+        children.splice(childIndex, 1);
+        return child;
+      }
+      function chooseSlash() {
+        const chance = Math.random();
+        function oppositeChildren(children) {
+          switch (children) {
+            case bottomLeftSlashes:
+              return bottomRightSlashes;
+            case bottomRightSlashes:
+              return bottomLeftSlashes;
+            case topLeftSlashes:
+              return topRightSlashes;
+            case topRightSlashes:
+              return topLeftSlashes;
+            default:
+              console.log("impossible?");
+              break;
+          }
+        }
+        function chooseSlashFromTwoContainers(container1, container2) {
+          let children;
+          if (chance < 0.5) {
+            children = container1;
+          } else {
+            children = container2;
+          }
+          if (children.length === 0) {
+            children = oppositeChildren(children);
+            if (children.length === 0) {
+              return null;
+            } else {
+              return chooseChild(children);
+            }
+          } else {
+            return chooseChild(children);
+          }
+        }
+        let chosenChild = chooseSlashFromTwoContainers(bottomLeftSlashes, bottomRightSlashes);
+        if (chosenChild === null) {
+          chosenChild = chooseSlashFromTwoContainers(topLeftSlashes, topRightSlashes);
+        }
+        if (chosenChild === null) {
+          return null;
+        }
+        return chosenChild;
+      }
+      function dropSlash() {
+        const chosenChild = chooseSlash();
+        if (chosenChild === null) {
+          return null;
+        }
+        makeElemFall(chosenChild);
+      }
+      function recursiveDropSlash() {
+        const result = dropSlash();
+        if (result === null) {
+          return;
+        }
+        let delay = Math.random() * 4000 + 500;
+        setTimeout(recursiveDropSlash, delay);
+        delay = Math.random() * 4000 + 500;
+        setTimeout(recursiveDropSlash, delay);
+      }
+      /* Main */
+      function main() {
+        stopButton.addEventListener('click', firstStop);
+        recursiveRequestAnimationFrame(drawRandSlashInRandContainer);
+      }
+      /* Event listeners */
+      document.addEventListener('DOMContentLoaded', main);
+      document.addEventListener('mousemove', onMouseMove);
+    </script>
+  </body>
+</html>

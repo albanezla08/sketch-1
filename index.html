@@ -266,7 +266,7 @@
         const change = Math.floor(Math.random() * 6 + 1) * parity;
         let wrongDate = todayDate + change;
         if (wrongDate > 31) {
-          wrongDate = 31 - wrongDate;
+          wrongDate = wrongDate - 31;
         } else if (wrongDate < 1) {
           wrongDate = 1 - wrongDate;
         }
